@@ -62,15 +62,23 @@ if echo $PLATFORM | grep "," > /dev/null ; then
         tar c -C ./dist/linux_arm64 --exclude cuda_jetpack5 --exclude cuda_jetpack6 . | zstd -9 -T0 >./dist/ollama-linux-arm64.tar.zst
         tar c -C ./dist/linux_arm64 ./lib/ollama/cuda_jetpack5  | zstd -9 -T0 >./dist/ollama-linux-arm64-jetpack5.tar.zst
         tar c -C ./dist/linux_arm64 ./lib/ollama/cuda_jetpack6  | zstd -9 -T0 >./dist/ollama-linux-arm64-jetpack6.tar.zst
-        tar c -C ./dist/linux_amd64 --exclude rocm --exclude 'mlx*' --exclude include . | zstd -9 -T0 >./dist/ollama-linux-amd64.tar.zst
+        tar c -C ./dist/linux_amd64 --exclude rocm . | zstd -9 -T0 >./dist/ollama-linux-amd64.tar.zst
         tar c -C ./dist/linux_amd64 ./lib/ollama/rocm  | zstd -9 -T0 >./dist/ollama-linux-amd64-rocm.tar.zst
-        tar c -C ./dist/linux_amd64 ./lib/ollama/mlx_cuda_v13 ./lib/ollama/include  | zstd -9 -T0 >./dist/ollama-linux-amd64-mlx.tar.zst
 elif echo $PLATFORM | grep "arm64" > /dev/null ; then
         tar c -C ./dist/ --exclude cuda_jetpack5 --exclude cuda_jetpack6 bin lib | zstd -9 -T0 >./dist/ollama-linux-arm64.tar.zst
         tar c -C ./dist/ ./lib/ollama/cuda_jetpack5  | zstd -9 -T0 >./dist/ollama-linux-arm64-jetpack5.tar.zst
         tar c -C ./dist/ ./lib/ollama/cuda_jetpack6  | zstd -9 -T0 >./dist/ollama-linux-arm64-jetpack6.tar.zst
 elif echo $PLATFORM | grep "amd64" > /dev/null ; then
-        tar c -C ./dist/ --exclude rocm --exclude 'mlx*' --exclude include bin lib | zstd -9 -T0 >./dist/ollama-linux-amd64.tar.zst
+        tar c -C ./dist/ --exclude rocm bin lib | zstd -9 -T0 >./dist/ollama-linux-amd64.tar.zst
         tar c -C ./dist/ ./lib/ollama/rocm  | zstd -9 -T0 >./dist/ollama-linux-amd64-rocm.tar.zst
-        tar c -C ./dist/ ./lib/ollama/mlx_cuda_v13 ./lib/ollama/include  | zstd -9 -T0 >./dist/ollama-linux-amd64-mlx.tar.zst
 fi
+
+# Warn if any compressed tarball exceeds GitHub's 2 GiB release-asset limit
+LIMIT=2147483648
+for f in ./dist/ollama-linux-*.tar.zst; do
+    [ -f "$f" ] || continue
+    size=$(stat -f%z "$f" 2>/dev/null || stat -c%s "$f")
+    if [ "$size" -gt "$LIMIT" ]; then
+        echo "WARNING: $f is $size bytes ($((size - LIMIT)) over the 2 GiB GitHub release-asset limit)" >&2
+    fi
+done
