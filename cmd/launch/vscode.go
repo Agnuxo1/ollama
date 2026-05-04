@@ -232,7 +232,10 @@ func (v *VSCode) printModelAccessTip() {
 }
 
 func (v *VSCode) Paths() []string {
-	return []string{v.chatLanguageModelsPath()}
+	if p := v.chatLanguageModelsPath(); fileExists(p) {
+		return []string{p}
+	}
+	return nil
 }
 
 func (v *VSCode) Edit(models []string) error {

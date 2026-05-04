@@ -163,10 +163,10 @@ func TestVSCodePaths(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", "")
 	clmPath := testVSCodePath(t, tmpDir, "chatLanguageModels.json")
 
-	t.Run("no file returns canonical path", func(t *testing.T) {
+	t.Run("no file returns nil", func(t *testing.T) {
 		os.Remove(clmPath)
-		if paths := v.Paths(); len(paths) != 1 || paths[0] != clmPath {
-			t.Errorf("expected [%s], got %v", clmPath, paths)
+		if paths := v.Paths(); paths != nil {
+			t.Errorf("expected nil, got %v", paths)
 		}
 	})
 

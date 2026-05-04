@@ -199,14 +199,13 @@ func TestOpenCodeModels(t *testing.T) {
 }
 
 func TestOpenCodePaths(t *testing.T) {
-	t.Run("returns canonical model.json path when missing", func(t *testing.T) {
+	t.Run("returns nil when model.json is missing", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		setTestHome(t, tmpDir)
 
 		o := &OpenCode{}
-		want := filepath.Join(tmpDir, ".local", "state", "opencode", "model.json")
-		if paths := o.Paths(); len(paths) != 1 || paths[0] != want {
-			t.Errorf("Paths() = %v, want [%s]", paths, want)
+		if paths := o.Paths(); paths != nil {
+			t.Errorf("Paths() = %v, want nil", paths)
 		}
 	})
 

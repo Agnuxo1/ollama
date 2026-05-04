@@ -730,10 +730,8 @@ func editorConfigNeedsRepair(editor Editor, models []string) bool {
 	if len(models) == 0 {
 		return false
 	}
-	for _, path := range editor.Paths() {
-		if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-			return true
-		}
+	if len(editor.Paths()) == 0 {
+		return true
 	}
 	current := editor.Models()
 	if current == nil {

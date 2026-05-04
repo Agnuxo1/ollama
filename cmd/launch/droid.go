@@ -57,7 +57,11 @@ func (d *Droid) Paths() []string {
 	if err != nil {
 		return nil
 	}
-	return []string{filepath.Join(home, ".factory", "settings.json")}
+	p := filepath.Join(home, ".factory", "settings.json")
+	if _, err := os.Stat(p); err == nil {
+		return []string{p}
+	}
+	return nil
 }
 
 func (d *Droid) Edit(models []string) error {

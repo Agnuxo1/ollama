@@ -173,6 +173,12 @@ func (p *Pi) Paths() []string {
 
 	modelsPath := filepath.Join(home, ".pi", "agent", "models.json")
 	settingsPath := filepath.Join(home, ".pi", "agent", "settings.json")
+	if _, err := os.Stat(modelsPath); err != nil {
+		return nil
+	}
+	if _, err := os.Stat(settingsPath); err != nil {
+		return nil
+	}
 	return []string{modelsPath, settingsPath}
 }
 

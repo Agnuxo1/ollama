@@ -35,7 +35,11 @@ func (c *Cline) Paths() []string {
 	if err != nil {
 		return nil
 	}
-	return []string{filepath.Join(home, ".cline", "data", "globalState.json")}
+	p := filepath.Join(home, ".cline", "data", "globalState.json")
+	if _, err := os.Stat(p); err == nil {
+		return []string{p}
+	}
+	return nil
 }
 
 func (c *Cline) Edit(models []string) error {

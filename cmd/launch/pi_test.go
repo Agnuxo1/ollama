@@ -373,21 +373,34 @@ exit 0
 func TestPiPaths(t *testing.T) {
 	pi := &Pi{}
 
-	t.Run("returns canonical paths when config is missing", func(t *testing.T) {
+	t.Run("returns empty when config is missing", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		setTestHome(t, tmpDir)
 
-		paths := pi.Paths()
-		want := []string{
-			filepath.Join(tmpDir, ".pi", "agent", "models.json"),
-			filepath.Join(tmpDir, ".pi", "agent", "settings.json"),
-		}
-		if len(paths) != 2 || paths[0] != want[0] || paths[1] != want[1] {
-			t.Errorf("Paths() = %v, want %v", paths, want)
+		if paths := pi.Paths(); len(paths) != 0 {
+			t.Errorf("Paths() = %v, want empty", paths)
 		}
 	})
 
-	t.Run("returns canonical paths when config exists", func(t *testing.T) {
+	t.Run("returns empty when one managed config file is missing", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		setTestHome(t, tmpDir)
+
+		configDir := filepath.Join(tmpDir, ".pi", "agent")
+		if err := os.MkdirAll(configDir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		modelsPath := filepath.Join(configDir, "models.json")
+		if err := os.WriteFile(modelsPath, []byte("{}"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+
+		if paths := pi.Paths(); len(paths) != 0 {
+			t.Errorf("Paths() = %v, want empty", paths)
+		}
+	})
+
+	t.Run("returns paths when config exists", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		setTestHome(t, tmpDir)
 
