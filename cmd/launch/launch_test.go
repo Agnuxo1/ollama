@@ -40,6 +40,61 @@ func (r *launcherEditorRunner) Edit(models []string) error {
 
 func (r *launcherEditorRunner) Models() []string { return r.models }
 
+func TestEditorConfigNeedsRepair(t *testing.T) {
+	tests := []struct {
+		name    string
+		current []string
+		saved   []string
+		want    bool
+	}{
+		{
+			name:    "missing editor state repairs",
+			current: nil,
+			saved:   []string{"llama3.2"},
+			want:    true,
+		},
+		{
+			name:    "exact match skips repair",
+			current: []string{"llama3.2", "qwen3:8b"},
+			saved:   []string{"llama3.2", "qwen3:8b"},
+			want:    false,
+		},
+		{
+			name:    "partial editor state repairs by default",
+			current: []string{"llama3.2"},
+			saved:   []string{"llama3.2", "qwen3:8b"},
+			want:    true,
+		},
+		{
+			name:    "extra editor models repair by default",
+			current: []string{"llama3.2", "qwen3:8b", "custom-model"},
+			saved:   []string{"llama3.2", "qwen3:8b"},
+			want:    true,
+		},
+		{
+			name:    "primary drift repairs",
+			current: []string{"mistral"},
+			saved:   []string{"llama3.2", "qwen3:8b"},
+			want:    true,
+		},
+		{
+			name:    "selected model drift repairs",
+			current: []string{"llama3.2", "mistral"},
+			saved:   []string{"llama3.2", "qwen3:8b"},
+			want:    true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			editor := &launcherEditorRunner{models: tt.current}
+			if got := editorConfigNeedsRepair(editor, tt.saved); got != tt.want {
+				t.Fatalf("editorConfigNeedsRepair() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 type launcherSingleRunner struct {
 	ranModel string
 }
@@ -2285,7 +2340,7 @@ func TestLaunchIntegration_ConfiguredEditorLaunchValidatesPrimaryOnly(t *testing
 	if err := os.WriteFile(settingsPath, []byte("{}"), 0o644); err != nil {
 		t.Fatalf("failed to seed editor settings: %v", err)
 	}
-	editor := &launcherEditorRunner{paths: []string{settingsPath}}
+	editor := &launcherEditorRunner{paths: []string{settingsPath}, models: []string{"llama3.2", "missing-local"}}
 	withIntegrationOverride(t, "droid", editor)
 
 	if err := config.SaveIntegration("droid", []string{"llama3.2", "missing-local"}); err != nil {
@@ -2354,7 +2409,7 @@ func TestLaunchIntegration_ConfiguredEditorLaunchSkipsReconfigure(t *testing.T) 
 	if err := os.WriteFile(settingsPath, []byte("{}"), 0o644); err != nil {
 		t.Fatalf("failed to seed editor settings: %v", err)
 	}
-	editor := &launcherEditorRunner{paths: []string{settingsPath}}
+	editor := &launcherEditorRunner{paths: []string{settingsPath}, models: []string{"llama3.2", "qwen3:8b"}}
 	withIntegrationOverride(t, "droid", editor)
 
 	if err := config.SaveIntegration("droid", []string{"llama3.2", "qwen3:8b"}); err != nil {
@@ -2410,7 +2465,7 @@ func TestLaunchIntegration_OpenclawPreservesExistingModelList(t *testing.T) {
 	if err := os.WriteFile(configPath, []byte("{}"), 0o644); err != nil {
 		t.Fatalf("failed to seed openclaw config: %v", err)
 	}
-	editor := &launcherEditorRunner{paths: []string{configPath}}
+	editor := &launcherEditorRunner{paths: []string{configPath}, models: []string{"llama3.2", "mistral"}}
 	withIntegrationOverride(t, "openclaw", editor)
 
 	if err := config.SaveIntegration("openclaw", []string{"llama3.2", "mistral"}); err != nil {

@@ -16,8 +16,6 @@ type Cline struct{}
 
 func (c *Cline) String() string { return "Cline" }
 
-const clineLaunchModelsKey = "ollamaLaunchModels"
-
 func (c *Cline) Run(model string, args []string) error {
 	if _, err := exec.LookPath("cline"); err != nil {
 		return fmt.Errorf("cline is not installed, install with: npm install -g cline")
@@ -73,7 +71,6 @@ func (c *Cline) Edit(models []string) error {
 	config["planModeApiProvider"] = "ollama"
 	config["planModeOllamaModelId"] = models[0]
 	config["planModeOllamaBaseUrl"] = baseURL
-	config[clineLaunchModelsKey] = models
 
 	config["welcomeViewCompleted"] = true
 
@@ -103,18 +100,8 @@ func (c *Cline) Models() []string {
 	if modelID == "" {
 		return nil
 	}
-
-	if raw, ok := config[clineLaunchModelsKey].([]any); ok {
-		models := make([]string, 0, len(raw))
-		for _, entry := range raw {
-			if model, ok := entry.(string); ok && model != "" {
-				models = append(models, model)
-			}
-		}
-		if len(models) > 0 {
-			return models
-		}
+	if cfg, err := loadStoredIntegrationConfig("cline"); err == nil && len(cfg.Models) > 0 && cfg.Models[0] == modelID {
+		return cfg.Models
 	}
-
 	return []string{modelID}
 }

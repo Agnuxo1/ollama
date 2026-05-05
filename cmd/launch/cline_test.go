@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/ollama/ollama/cmd/config"
 )
 
 func TestClineIntegration(t *testing.T) {
@@ -178,12 +180,14 @@ func TestClineModels(t *testing.T) {
 		}
 	})
 
-	t.Run("returns full launcher-managed model list when present", func(t *testing.T) {
+	t.Run("returns saved model list when primary matches", func(t *testing.T) {
 		os.MkdirAll(configDir, 0o755)
+		if err := config.SaveIntegration("cline", []string{"kimi-k2.5:cloud", "glm-5:cloud"}); err != nil {
+			t.Fatal(err)
+		}
 		config := map[string]any{
 			"actModeApiProvider":   "ollama",
 			"actModeOllamaModelId": "kimi-k2.5:cloud",
-			clineLaunchModelsKey:   []string{"kimi-k2.5:cloud", "glm-5:cloud"},
 		}
 		data, _ := json.Marshal(config)
 		os.WriteFile(configPath, data, 0o644)
@@ -194,6 +198,7 @@ func TestClineModels(t *testing.T) {
 			t.Errorf("Models() = %v, want %v", models, want)
 		}
 	})
+
 }
 
 func TestClinePaths(t *testing.T) {

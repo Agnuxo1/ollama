@@ -382,7 +382,7 @@ func TestPiPaths(t *testing.T) {
 		}
 	})
 
-	t.Run("returns empty when one managed config file is missing", func(t *testing.T) {
+	t.Run("returns existing paths when one managed config file is missing", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		setTestHome(t, tmpDir)
 
@@ -395,8 +395,8 @@ func TestPiPaths(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if paths := pi.Paths(); len(paths) != 0 {
-			t.Errorf("Paths() = %v, want empty", paths)
+		if paths := pi.Paths(); len(paths) != 1 || paths[0] != modelsPath {
+			t.Errorf("Paths() = %v, want [%s]", paths, modelsPath)
 		}
 	})
 
@@ -922,7 +922,7 @@ func TestPiModels(t *testing.T) {
 		}
 	})
 
-	t.Run("returns models from config", func(t *testing.T) {
+	t.Run("returns launch-managed models from config", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		setTestHome(t, tmpDir)
 
@@ -934,14 +934,19 @@ func TestPiModels(t *testing.T) {
 			"providers": {
 				"ollama": {
 					"models": [
-						{"id": "llama3.2"},
-						{"id": "qwen3:8b"}
+						{"id": "llama3.2", "_launch": true},
+						{"id": "user-model"},
+						{"id": "qwen3:8b", "_launch": true}
 					]
 				}
 			}
 		}`
 		configPath := filepath.Join(configDir, "models.json")
 		if err := os.WriteFile(configPath, []byte(config), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		settingsPath := filepath.Join(configDir, "settings.json")
+		if err := os.WriteFile(settingsPath, []byte(`{"defaultProvider":"ollama","defaultModel":"llama3.2"}`), 0o644); err != nil {
 			t.Fatal(err)
 		}
 
@@ -950,11 +955,11 @@ func TestPiModels(t *testing.T) {
 			t.Errorf("Models() returned %d models, want 2", len(models))
 		}
 		if models[0] != "llama3.2" || models[1] != "qwen3:8b" {
-			t.Errorf("Models() = %v, want [llama3.2 qwen3:8b] (sorted)", models)
+			t.Errorf("Models() = %v, want [llama3.2 qwen3:8b]", models)
 		}
 	})
 
-	t.Run("returns models in config order", func(t *testing.T) {
+	t.Run("returns default model first", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		setTestHome(t, tmpDir)
 
@@ -966,9 +971,41 @@ func TestPiModels(t *testing.T) {
 			"providers": {
 				"ollama": {
 					"models": [
-						{"id": "z-model"},
-						{"id": "a-model"},
-						{"id": "m-model"}
+						{"id": "z-model", "_launch": true},
+						{"id": "a-model", "_launch": true},
+						{"id": "m-model", "_launch": true}
+					]
+				}
+			}
+		}`
+		configPath := filepath.Join(configDir, "models.json")
+		if err := os.WriteFile(configPath, []byte(config), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		settingsPath := filepath.Join(configDir, "settings.json")
+		if err := os.WriteFile(settingsPath, []byte(`{"defaultProvider":"ollama","defaultModel":"a-model"}`), 0o644); err != nil {
+			t.Fatal(err)
+		}
+
+		models := pi.Models()
+		if models[0] != "a-model" || models[1] != "z-model" || models[2] != "m-model" {
+			t.Errorf("Models() = %v, want [a-model z-model m-model]", models)
+		}
+	})
+
+	t.Run("returns nil when settings are missing", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		setTestHome(t, tmpDir)
+
+		configDir := filepath.Join(tmpDir, ".pi", "agent")
+		if err := os.MkdirAll(configDir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		config := `{
+			"providers": {
+				"ollama": {
+					"models": [
+						{"id": "llama3.2", "_launch": true}
 					]
 				}
 			}
@@ -978,9 +1015,8 @@ func TestPiModels(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		models := pi.Models()
-		if models[0] != "z-model" || models[1] != "a-model" || models[2] != "m-model" {
-			t.Errorf("Models() = %v, want [z-model a-model m-model] (config order)", models)
+		if models := pi.Models(); models != nil {
+			t.Errorf("Models() = %v, want nil when settings are missing", models)
 		}
 	})
 
@@ -1001,6 +1037,10 @@ func TestPiModels(t *testing.T) {
 		if err := os.WriteFile(configPath, []byte(config), 0o644); err != nil {
 			t.Fatal(err)
 		}
+		settingsPath := filepath.Join(configDir, "settings.json")
+		if err := os.WriteFile(settingsPath, []byte(`{"defaultProvider":"ollama","defaultModel":"llama3.2"}`), 0o644); err != nil {
+			t.Fatal(err)
+		}
 
 		models := pi.Models()
 		if models != nil {
@@ -1018,6 +1058,10 @@ func TestPiModels(t *testing.T) {
 		}
 		configPath := filepath.Join(configDir, "models.json")
 		if err := os.WriteFile(configPath, []byte("{invalid json}"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		settingsPath := filepath.Join(configDir, "settings.json")
+		if err := os.WriteFile(settingsPath, []byte(`{"defaultProvider":"ollama","defaultModel":"llama3.2"}`), 0o644); err != nil {
 			t.Fatal(err)
 		}
 
